@@ -1,0 +1,138 @@
+name: Update README on Infrastructure Changes
+
+on:
+  workflow_run:
+    workflows: ["Terraform Infrastructure"]
+    types:
+      - completed
+    branches: [main]
+
+jobs:
+  update-readme:
+    name: Update README with Latest Info
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Get Terraform Outputs
+        id: terraform-output
+        run: |
+          echo "alb_dns_name=$(terraform output -raw alb_dns_name 2>/dev/null || echo 'Not deployed')" >> $GITHUB_OUTPUT
+          echo "vpc_id=$(terraform output -raw vpc_id 2>/dev/null || echo 'Not deployed')" >> $GITHUB_OUTPUT
+          echo "ecs_cluster_name=$(terraform output -raw ecs_cluster_name 2>/dev/null || echo 'Not deployed')" >> $GITHUB_OUTPUT
+
+      - name: Update README Badge Section
+        run: |
+          # Get current date
+          CURRENT_DATE=$(date '+%Y-%m-%d %H:%M:%S UTC')
+          
+          # Create or update badges section
+          cat > badges_section.md << EOF
+          # Healthcare Application - DevOps Challenge
+          
+          ![Terraform](https://img.shields.io/badge/terraform-%235835CC.svg?style=for-the-badge&logo=terraform&logoColor=white)
+          ![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)
+          ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+          ![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white)
+          
+          [![Terraform Validation](https://github.com/${{ github.repository }}/actions/workflows/terraform.yml/badge.svg)](https://github.com/${{ github.repository }}/actions/workflows/terraform.yml)
+          [![Build and Deploy](https://github.com/${{ github.repository }}/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/${{ github.repository }}/actions/workflows/build-and-deploy.yml)
+          
+          > **Status:**  Infrastructure Deployed | **Last Updated:** ${CURRENT_DATE}
+          
+          EOF
+          
+          # Replace the first line and add badges
+          tail -n +2 README.md > temp_readme.md
+          cat badges_section.md > README.md
+          cat temp_readme.md >> README.md
+          rm temp_readme.md badges_section.md
+
+      - name: Update Infrastructure Status
+        run: |
+          # Create infrastructure status section
+          cat > status_section.md << EOF
+          
+          ##  Infrastructure Status
+          
+          | Component | Status | Details |
+          |-----------|--------|---------|
+          | **VPC** |  Active | \`${{ steps.terraform-output.outputs.vpc_id }}\` |
+          | **ECS Cluster** |  Running | \`${{ steps.terraform-output.outputs.ecs_cluster_name }}\` |
+          | **Load Balancer** |  Available | \`${{ steps.terraform-output.outputs.alb_dns_name }}\` |
+          | **Container Registry** |  Ready | ECR repositories configured |
+          | **Monitoring** |  Active | CloudWatch logs and dashboards |
+          
+          ### Service Endpoints
+          
+          - **Patient Service:** http://${{ steps.terraform-output.outputs.alb_dns_name }}/api/patients
+          - **Appointment Service:** http://${{ steps.terraform-output.outputs.alb_dns_name }}/api/appointments
+          - **Health Checks:** Available at \`/health\` endpoint for each service
+          
+          EOF
+          
+          # Check if status section exists and replace it
+          if grep -q "##  Infrastructure Status" README.md; then
+            # Find the line number and replace section
+            start_line=$(grep -n "##  Infrastructure Status" README.md | cut -d: -f1)
+            end_line=$(tail -n +$((start_line + 1)) README.md | grep -n "^## " | head -1 | cut -d: -f1)
+            
+            if [ -n "$end_line" ]; then
+              end_line=$((start_line + end_line - 1))
+              head -n $((start_line - 1)) README.md > temp_readme.md
+              cat status_section.md >> temp_readme.md
+              tail -n +$((end_line + 1)) README.md >> temp_readme.md
+              mv temp_readme.md README.md
+            else
+              # Section is at the end of file
+              head -n $((start_line - 1)) README.md > temp_readme.md
+              cat status_section.md >> temp_readme.md
+              mv temp_readme.md README.md
+            fi
+          else
+            # Add status section before the first ## heading after the title
+            first_heading=$(grep -n "^## " README.md | head -1 | cut -d: -f1)
+            if [ -n "$first_heading" ]; then
+              head -n $((first_heading - 1)) README.md > temp_readme.md
+              cat status_section.md >> temp_readme.md
+              tail -n +$first_heading README.md >> temp_readme.md
+              mv temp_readme.md README.md
+            else
+              cat status_section.md >> README.md
+            fi
+          fi
+          
+          rm status_section.md
+
+      - name: Commit Updated README
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add README.md
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m " Auto-update README with infrastructure status [skip ci]"
+            git push
+          fi
