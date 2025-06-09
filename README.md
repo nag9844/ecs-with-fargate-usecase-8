@@ -2,7 +2,7 @@
 
 A comprehensive DevOps solution demonstrating Infrastructure as Code, containerization, CI/CD pipelines, and cloud deployment using AWS Fargate.
 
-## 🏗️ Architecture
+## Architecture
 
 This project implements a microservices architecture with two Node.js services deployed on AWS Fargate:
 
@@ -18,7 +18,7 @@ This project implements a microservices architecture with two Node.js services d
 - **Terraform**: Infrastructure as Code
 - **GitHub Actions**: CI/CD automation
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - AWS Account with appropriate permissions
@@ -43,7 +43,7 @@ curl http://<alb-dns-name>/api/patients
 curl http://<alb-dns-name>/api/appointments
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ├── modules/                 # Terraform modules
@@ -63,7 +63,7 @@ curl http://<alb-dns-name>/api/appointments
 └── docs/                   # Documentation
 ```
 
-## 🔧 Infrastructure Modules
+## Infrastructure Modules
 
 ### VPC Module
 - Multi-AZ VPC with public/private subnets
@@ -87,7 +87,7 @@ curl http://<alb-dns-name>/api/appointments
 - Lifecycle policies for image management
 - Image vulnerability scanning enabled
 
-## 🔄 CI/CD Pipelines
+## CI/CD Pipelines
 
 ### Infrastructure Pipeline
 1. **Validate**: Terraform format check and validation
@@ -99,7 +99,7 @@ curl http://<alb-dns-name>/api/appointments
 2. **Deploy**: Update ECS services with new images
 3. **Monitor**: Wait for deployment stabilization
 
-## 📊 Monitoring
+## Monitoring
 
 ### CloudWatch Integration
 - **Container Insights**: ECS cluster monitoring
@@ -112,7 +112,7 @@ curl http://<alb-dns-name>/api/appointments
 - **Load Balancer**: Automatic target health monitoring
 - **Container**: Built-in Docker health checks
 
-## 🔒 Security Features
+## Security Features
 
 - **Network Isolation**: Services in private subnets
 - **IAM Roles**: Least privilege access principles
@@ -120,7 +120,7 @@ curl http://<alb-dns-name>/api/appointments
 - **Container Security**: Non-root user, minimal attack surface
 - **Encryption**: Data encrypted at rest and in transit
 
-## 📖 API Documentation
+##  API Documentation
 
 ### Patient Service (`/api/patients`)
 ```bash
@@ -152,7 +152,7 @@ curl -X POST http://<alb-dns>/api/appointments \
 curl http://<alb-dns>/api/appointments
 ```
 
-## 🛠️ Local Development
+## Local Development
 
 ### Running Services Locally
 ```bash
@@ -178,7 +178,7 @@ cd microservices/appointment-service
 docker build -t appointment-service .
 ```
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -200,7 +200,7 @@ docker build -t appointment-service .
    aws elbv2 describe-target-health --target-group-arn <target-group-arn>
    ```
 
-## 📚 Documentation
+## Documentation
 
 Detailed documentation is available in the `docs/` directory:
 
@@ -208,7 +208,7 @@ Detailed documentation is available in the `docs/` directory:
 - [**Deployment Guide**](docs/DEPLOYMENT.md): Step-by-step deployment instructions
 - [**Monitoring Guide**](docs/MONITORING.md): Monitoring and logging setup
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -216,24 +216,24 @@ Detailed documentation is available in the `docs/` directory:
 4. Submit a pull request
 5. Automated checks will run Terraform plan
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🏆 Evaluation Criteria
+## Evaluation Criteria
 
 This project demonstrates:
 
-- ✅ **Correct Fargate Implementation**: Serverless container deployment
-- ✅ **Quality IaC**: Modular Terraform with best practices
-- ✅ **Effective CI/CD**: Automated testing and deployment
-- ✅ **Container Best Practices**: Multi-stage builds, security, health checks
-- ✅ **Monitoring Setup**: CloudWatch integration with dashboards
-- ✅ **Documentation**: Comprehensive guides and architecture docs
-- ✅ **Security**: Network isolation, IAM roles, encryption
-- ✅ **State Management**: S3 backend with file locking
+- **Correct Fargate Implementation**: Serverless container deployment
+- **Quality IaC**: Modular Terraform with best practices
+- **Effective CI/CD**: Automated testing and deployment
+- **Container Best Practices**: Multi-stage builds, security, health checks
+- **Monitoring Setup**: CloudWatch integration with dashboards
+- **Documentation**: Comprehensive guides and architecture docs
+- **Security**: Network isolation, IAM roles, encryption
+- **State Management**: S3 backend with file locking
 
-## 💡 Key Features
+## Key Features
 
 - **Zero-Downtime Deployments**: Rolling updates with health checks
 - **Auto Scaling**: ECS service scaling based on metrics
@@ -241,9 +241,3 @@ This project demonstrates:
 - **Security**: Multi-layered security approach
 - **Observability**: Comprehensive monitoring and logging
 - **Disaster Recovery**: Multi-AZ deployment with automated failover
-
----
-
-**Built with ❤️ for the DevOps Challenge**
-
-For questions or support, please refer to the documentation or create an issue in this repository.
