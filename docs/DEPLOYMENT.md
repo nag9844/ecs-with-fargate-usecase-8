@@ -23,7 +23,7 @@ Before deploying the Healthcare Application, ensure you have the following:
 
 ### Local Development Tools
 - AWS CLI v2
-- Terraform >= 1.6.0
+- Terraform >= 1.12.0
 - Docker
 - Node.js >= 18.0.0
 

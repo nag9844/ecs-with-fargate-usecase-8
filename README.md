@@ -25,7 +25,7 @@ This project implements a microservices architecture with two Node.js services d
 - GitHub repository with secrets configured
 - Docker (for local development)
 - AWS CLI v2
-- Terraform >= 1.6.0
+- Terraform >= 1.12.0
 
 ### 1. Deploy Infrastructure
 ```bash
