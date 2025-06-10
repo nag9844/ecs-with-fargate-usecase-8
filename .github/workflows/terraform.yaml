@@ -1,76 +1,105 @@
-name: Terraform Infrastructure CI/CD
+name: Terraform Infrastructure
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - '*.tf'
-      - 'modules/**'
+    branches: [main]
+    paths: ['*.tf', 'modules/**']
   pull_request:
-    branches:
-      - main
-    paths:
-      - '*.tf'
-      - 'modules/**'
-  workflow_dispatch: # Allows manual triggering of the workflow
+    branches: [main]
+    paths: ['*.tf', 'modules/**']
+  workflow_dispatch:
 
 env:
   AWS_REGION: ap-south-1
-  TF_VERSION: 1.12.0
+  TF_VERSION: 1.6.0
 
 jobs:
-  # This job runs for all triggers (push, pull_request, workflow_dispatch)
   terraform-validate:
     name: Terraform Validate & Lint
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install TFLint
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Cache TFLint
+        uses: actions/cache@v3
+        with:
+          path: ~/.tflint.d/plugins
+          key: ${{ runner.os }}-tflint-${{ hashFiles('.tflint.hcl') }}
+
+      - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
         with:
-          tflint_version: v0.50.2
+          tflint_version: v0.50.3
+
+      - name: Setup Checkov
+        run: |
+          pip3 install checkov
+          checkov --version
+
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check -recursive .
+        continue-on-error: true
+
+      - name: Terraform Init
+        id: init
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
 
       - name: Run TFLint
-        continue-on-error: true # Allow subsequent steps to run even if TFLint fails
+        id: tflint
         run: |
           tflint --init
-          tflint -f compact
-        working-directory: ./
+          tflint --format compact
+        continue-on-error: true
 
       - name: Run Checkov
-        uses: bridgecrewio/checkov-action@v12
-        with:
-          directory: ./
-          framework: terraform
-        continue-on-error: true # Allow subsequent steps to run even if Checkov fails
+        id: checkov
+        run: |
+          checkov -d . --framework terraform --output cli --quiet --compact
+        continue-on-error: true
 
       - name: Comment PR - Validation Results
-        # Only comment on pull requests
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
             const output = `
-            ## Terraform Validation Results
+            ## Terraform Validation Results 🔍
             
             | Check | Status |
             |-------|--------|
-            | TFLint | \`${{ steps.run-tflint.outcome }}\` |
-            | Checkov | \`${{ steps.run-checkov.outcome }}\` |
+            | Format | \`${{ steps.fmt.outcome }}\` |
+            | Init | \`${{ steps.init.outcome }}\` |
+            | Validate | \`${{ steps.validate.outcome }}\` |
+            | TFLint | \`${{ steps.tflint.outcome }}\` |
+            | Checkov | \`${{ steps.checkov.outcome }}\` |
             
-            <details><summary> Validation Details</summary>
+            <details><summary>📋 Validation Details</summary>
+            
+            ### Terraform Format
+            \`\`\`
+            ${{ steps.fmt.outputs.stdout }}
+            \`\`\`
             
             ### TFLint Results
             \`\`\`
-            ${{ steps.run-tflint.outputs.stdout || 'No TFLint output.' }}
+            ${{ steps.tflint.outputs.stdout }}
             \`\`\`
             
             ### Checkov Security Scan
             \`\`\`
-            ${{ steps.run-checkov.outputs.stdout || 'No Checkov output.' }}
+            ${{ steps.checkov.outputs.stdout }}
             \`\`\`
             
             </details>
@@ -84,22 +113,21 @@ jobs:
               body: output
             })
 
-  # This job runs only for pull requests to main to show the plan
   terraform-plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
-    needs: terraform-validate # Ensure validation passes before planning
-    # Only run on pull requests to the main branch and if terraform-validate job passed
-    if: github.event_name == 'pull_request' && needs.terraform-validate.result == 'success'
-
+    needs: terraform-validate
+    if: github.event_name == 'pull_request'
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials using OIDC
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
@@ -118,7 +146,7 @@ jobs:
           echo "plan_output<<EOF" >> $GITHUB_OUTPUT
           cat plan_output.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-        continue-on-error: true # Allow the PR comment even if plan fails
+        continue-on-error: true
 
       - name: Comment PR - Plan Results
         uses: actions/github-script@v7
@@ -128,11 +156,11 @@ jobs:
             const truncatedPlan = plan.length > 65000 ? plan.substring(0, 65000) + "\n... (truncated)" : plan;
             
             const output = `
-            ## Terraform Plan Results 
+            ## Terraform Plan Results 📖
             
             **Plan Status:** \`${{ steps.plan.outcome }}\`
             
-            <details><summary> Show Terraform Plan</summary>
+            <details><summary>📋 Show Terraform Plan</summary>
             
             \`\`\`terraform
             ${truncatedPlan}
@@ -145,7 +173,7 @@ jobs:
             - **Triggered by:** @${{ github.actor }}
             - **Commit:** ${{ github.sha }}
             
-            > This plan will be applied automatically when this PR is merged to main branch.
+            > 💡 This plan will be applied automatically when this PR is merged to main branch.
             `;
             
             github.rest.issues.createComment({
@@ -155,26 +183,25 @@ jobs:
               body: output
             })
 
-  # This job runs only on pushes to main to apply changes and update README
-  terraform-apply-and-update-readme:
-    name: Terraform Apply & Update README
+  terraform-apply:
+    name: Terraform Apply
     runs-on: ubuntu-latest
-    needs: terraform-validate # Ensure validation passes before applying
-    # Only run on push to the main branch and if terraform-validate job passed
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.terraform-validate.result == 'success'
-
+    needs: terraform-validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
     environment:
       name: production
-      url: ${{ steps.terraform-output.outputs.alb_dns_name }} # Ensure this matches your output name if it changes
-
+      url: ${{ steps.terraform-output.outputs.alb_dns_name }}
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials using OIDC
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
@@ -202,8 +229,6 @@ jobs:
           echo "ecr_appointment_repository_url=$(terraform output -raw ecr_appointment_repository_url)" >> $GITHUB_OUTPUT
           echo "vpc_id=$(terraform output -raw vpc_id)" >> $GITHUB_OUTPUT
           echo "ecs_cluster_name=$(terraform output -raw ecs_cluster_name)" >> $GITHUB_OUTPUT
-        # Ensure this step is successful to proceed with README update
-        continue-on-error: false 
 
       - name: Update README with Infrastructure Details
         run: |
@@ -213,7 +238,7 @@ jobs:
           # Create infrastructure section for README
           cat > infrastructure_section.md << EOF
           
-          ## Infrastructure Details
+          ## 🏗️ Infrastructure Details
           
           **Last Updated:** ${CURRENT_DATE}
           
@@ -235,14 +260,14 @@ jobs:
           
           ### Deployment Status
           
-          Infrastructure successfully deployed and configured
+          ✅ Infrastructure successfully deployed and configured
           
           EOF
           
           # Check if README.md exists and has infrastructure section
-          if grep -q "## Infrastructure Details" README.md; then
+          if grep -q "## 🏗️ Infrastructure Details" README.md; then
             # Replace existing infrastructure section
-            sed -i '/## Infrastructure Details/,$d' README.md
+            sed -i '/## 🏗️ Infrastructure Details/,$d' README.md
             cat infrastructure_section.md >> README.md
           else
             # Append new infrastructure section
@@ -260,13 +285,13 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m " Update README with latest infrastructure details [skip ci]"
+            git commit -m "📝 Update README with latest infrastructure details [skip ci]"
             git push
           fi
 
       - name: Create Deployment Summary
         run: |
-          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Infrastructure Successfully Deployed!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -279,4 +304,4 @@ jobs:
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "1. Test the services: http://${{ steps.terraform-output.outputs.alb_dns_name }}/api/patients" >> $GITHUB_STEP_SUMMARY
           echo "2. Deploy applications using the build-and-deploy workflow" >> $GITHUB_STEP_SUMMARY
-          echo "3. Monitor the deployment in AWS Console" >> $GITHUB_STEP_SUMMARYs
+          echo "3. Monitor the deployment in AWS Console" >> $GITHUB_STEP_SUMMARY
