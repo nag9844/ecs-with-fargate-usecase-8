@@ -43,7 +43,7 @@ resource "aws_lb_target_group" "patient_service" {
 
 # Target Group for Appointment Service
 resource "aws_lb_target_group" "appointment_service" {
-  name     = "${var.project_name}-${var.environment}-apmt-tg"
+  name     = "${var.project_name}-${var.environment}-appointment-tg"
   port     = 3000
   protocol = "HTTP"
   vpc_id   = var.vpc_id
@@ -79,7 +79,7 @@ resource "aws_lb_listener" "main" {
 
     fixed_response {
       content_type = "text/plain"
-      message_body = "Healthcare Application - Service Not Found"
+      message_body = "Healthcare Application - Try /patients or /appointments"
       status_code  = "404"
     }
   }
@@ -102,7 +102,7 @@ resource "aws_lb_listener_rule" "patient_service" {
 
   condition {
     path_pattern {
-      values = ["/api/patients*"]
+      values = ["/patients*"]
     }
   }
 
@@ -125,13 +125,40 @@ resource "aws_lb_listener_rule" "appointment_service" {
 
   condition {
     path_pattern {
-      values = ["/api/appointments*"]
+      values = ["/appointments*"]
     }
   }
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-appointment-rule"
     Service     = "appointment-service"
+    Environment = var.environment
+  }
+}
+
+# Health check rule for both services
+resource "aws_lb_listener_rule" "health_check" {
+  listener_arn = aws_lb_listener.main.arn
+  priority     = 50
+
+  action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "application/json"
+      message_body = "{\"status\":\"healthy\",\"services\":[\"patient-service\",\"appointment-service\"]}"
+      status_code  = "200"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/health"]
+    }
+  }
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-health-rule"
     Environment = var.environment
   }
 }
