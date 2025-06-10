@@ -14,7 +14,6 @@ Before deploying the Healthcare Application, ensure you have the following:
    - IAM (Roles, Policies)
    - CloudWatch (Logs, Dashboards, Alarms)
    - S3 (Terraform state bucket)
-   - DynamoDB (Terraform state locking)
 
 ### GitHub Repository Setup
 1. **Fork/Clone** this repository
@@ -32,7 +31,7 @@ Before deploying the Healthcare Application, ensure you have the following:
 
 ### 1. Setup Terraform Backend
 
-Before deploying infrastructure, you need to create the S3 bucket and DynamoDB table for Terraform state management.
+Before deploying infrastructure, you need to create the S3 bucket for Terraform state management.
 
 #### Option A: Using GitHub Actions (Recommended)
 1. Go to **Actions** tab in your GitHub repository
@@ -45,7 +44,7 @@ Before deploying infrastructure, you need to create the S3 bucket and DynamoDB t
 # Create S3 bucket for Terraform state
 aws s3api create-bucket \
   --bucket healthcare-app-terraform-state \
-  --region us-east-1
+  --region ap-south-1
 
 # Enable versioning
 aws s3api put-bucket-versioning \
@@ -63,13 +62,6 @@ aws s3api put-bucket-encryption \
     }]
   }'
 
-# Create DynamoDB table for state locking
-aws dynamodb create-table \
-  --table-name terraform-state-locks \
-  --attribute-definitions AttributeName=LockID,AttributeType=S \
-  --key-schema AttributeName=LockID,KeyType=HASH \
-  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
-```
 
 ### 2. Deploy Infrastructure
 
@@ -88,9 +80,8 @@ cd terraform
 terraform init \
   -backend-config="bucket=healthcare-app-terraform-state" \
   -backend-config="key=dev/terraform.tfstate" \
-  -backend-config="region=us-east-1" \
-  -backend-config="encrypt=true" \
-  -backend-config="dynamodb_table=terraform-state-locks"
+  -backend-config="region=ap-south-1" \
+  -backend-config="encrypt=true"
 
 # Plan deployment
 terraform plan -var-file="environments/dev/terraform.tfvars"
@@ -112,19 +103,19 @@ terraform apply -var-file="environments/dev/terraform.tfvars"
 aws configure
 
 # Login to ECR
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
+aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.ap-south-1.amazonaws.com
 
 # Build Patient Service
 cd microservices/patient-service
 docker build -t healthcare-app-dev-patient-service .
-docker tag healthcare-app-dev-patient-service:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/healthcare-app-dev-patient-service:latest
-docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/healthcare-app-dev-patient-service:latest
+docker tag healthcare-app-dev-patient-service:latest <account-id>.dkr.ecr.ap-south-1.amazonaws.com/healthcare-app-dev-patient-service:latest
+docker push <account-id>.dkr.ecr.ap-south-1.amazonaws.com/healthcare-app-dev-patient-service:latest
 
 # Build Appointment Service
 cd ../appointment-service
 docker build -t healthcare-app-dev-appointment-service .
-docker tag healthcare-app-dev-appointment-service:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/healthcare-app-dev-appointment-service:latest
-docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/healthcare-app-dev-appointment-service:latest
+docker tag healthcare-app-dev-appointment-service:latest <account-id>.dkr.ecr.ap-south-1.amazonaws.com/healthcare-app-dev-appointment-service:latest
+docker push <account-id>.dkr.ecr.ap-south-1.amazonaws.com/healthcare-app-dev-appointment-service:latest
 
 # Update ECS services
 aws ecs update-service --cluster healthcare-app-dev-cluster --service healthcare-app-dev-patient-service --force-new-deployment
@@ -175,13 +166,6 @@ curl -X POST http://<alb-dns-name>/api/patients \
 
 ### Common Issues
 
-#### 1. Terraform Backend Issues
-```bash
-# Error: Failed to get existing workspaces
-# Solution: Ensure S3 bucket and DynamoDB table exist
-aws s3 ls s3://healthcare-app-terraform-state
-aws dynamodb describe-table --table-name terraform-state-locks
-```
 
 #### 2. ECS Service Deployment Failures
 ```bash
@@ -239,7 +223,6 @@ terraform destroy -var-file="environments/dev/terraform.tfvars"
 # Clean up backend resources (if needed)
 aws s3 rm s3://healthcare-app-terraform-state --recursive
 aws s3api delete-bucket --bucket healthcare-app-terraform-state
-aws dynamodb delete-table --table-name terraform-state-locks
 ```
 
 ### Partial Cleanup

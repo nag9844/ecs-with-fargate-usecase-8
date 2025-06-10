@@ -43,7 +43,7 @@ The Healthcare Application includes comprehensive monitoring and logging capabil
 
 **Access**: 
 ```
-https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#dashboards:name=healthcare-app-{env}-dashboard
+https://console.aws.amazon.com/cloudwatch/home?region=ap-south-1#dashboards:name=healthcare-app-{env}-dashboard
 ```
 
 ### Alarms
@@ -193,14 +193,14 @@ aws sns create-topic --name healthcare-app-alerts
 
 # Subscribe to topic
 aws sns subscribe \
-  --topic-arn arn:aws:sns:us-east-1:123456789012:healthcare-app-alerts \
+  --topic-arn arn:aws:sns:ap-south-1:123456789012:healthcare-app-alerts \
   --protocol email \
   --notification-endpoint admin@healthcare-app.com
 
 # Update alarm to use SNS
 aws cloudwatch put-metric-alarm \
   --alarm-name healthcare-app-dev-high-cpu \
-  --alarm-actions arn:aws:sns:us-east-1:123456789012:healthcare-app-alerts
+  --alarm-actions arn:aws:sns:ap-south-1:123456789012:healthcare-app-alerts
 ```
 
 ## Log Analysis Tools
