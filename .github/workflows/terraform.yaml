@@ -7,6 +7,7 @@ on:
   push: 
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -81,7 +82,7 @@ jobs:
 
       - name: Terraform Plan
         id: plan
-        if: github.event_name == 'pull_request'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
         run: terraform plan -no-color -input=false
         continue-on-error: true
       
@@ -148,5 +149,5 @@ jobs:
             })
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: terraform apply -auto-approve -input=false
