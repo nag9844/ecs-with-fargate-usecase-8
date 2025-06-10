@@ -4,8 +4,6 @@ A comprehensive DevOps solution demonstrating Infrastructure as Code, containeri
 
 ## Architecture
 
-...........
-
 This project implements a microservices architecture with two Node.js services deployed on AWS Fargate:
 
 - **Patient Service**: Manages patient data and records
