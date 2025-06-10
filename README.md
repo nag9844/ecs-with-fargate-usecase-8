@@ -1,243 +1,51 @@
-# Healthcare Application - DevOps Challenge
+## Requirements
 
-A comprehensive DevOps solution demonstrating Infrastructure as Code, containerization, CI/CD pipelines, and cloud deployment using AWS Fargate.
+| Name | Version |
+|------|---------|
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.12.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 5.0 |
 
-## Architecture
+## Providers
 
-This project implements a microservices architecture with two Node.js services deployed on AWS Fargate:
+No providers.
 
-- **Patient Service**: Manages patient data and records
-- **Appointment Service**: Handles appointment scheduling and management
+## Modules
 
-### Key Components
-- **AWS Fargate**: Serverless container platform
-- **Application Load Balancer**: Traffic distribution and path-based routing
-- **Amazon ECR**: Container image registry
-- **VPC**: Network isolation with public/private subnets
-- **CloudWatch**: Monitoring, logging, and dashboards
-- **Terraform**: Infrastructure as Code
-- **GitHub Actions**: CI/CD automation
+| Name | Source | Version |
+|------|--------|---------|
+| <a name="module_alb"></a> [alb](#module\_alb) | ./modules/alb | n/a |
+| <a name="module_cloudwatch"></a> [cloudwatch](#module\_cloudwatch) | ./modules/cloudwatch | n/a |
+| <a name="module_ecr"></a> [ecr](#module\_ecr) | ./modules/ecr | n/a |
+| <a name="module_ecs"></a> [ecs](#module\_ecs) | ./modules/ecs | n/a |
+| <a name="module_iam"></a> [iam](#module\_iam) | ./modules/iam | n/a |
+| <a name="module_vpc"></a> [vpc](#module\_vpc) | ./modules/vpc | n/a |
 
-## Quick Start
+## Resources
 
-### Prerequisites
-- AWS Account with appropriate permissions
-- GitHub repository with secrets configured
-- Docker (for local development)
-- AWS CLI v2
-- Terraform >= 1.12.0
+No resources.
 
-### 1. Deploy Infrastructure
-```bash
-# Push changes to main branch to trigger deployment
-git push origin main
-```
+## Inputs
 
-### 2. Access Application
-```bash
-# Get the ALB DNS name from Terraform outputs
-terraform output alb_dns_name
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_app_port"></a> [app\_port](#input\_app\_port) | Application port | `number` | `3000` | no |
+| <a name="input_availability_zones"></a> [availability\_zones](#input\_availability\_zones) | List of availability zones | `list(string)` | <pre>[<br>  "ap-south-1a",<br>  "ap-south-1b"<br>]</pre> | no |
+| <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | AWS region | `string` | `"ap-south-1"` | no |
+| <a name="input_container_cpu"></a> [container\_cpu](#input\_container\_cpu) | CPU units for containers | `number` | `256` | no |
+| <a name="input_container_memory"></a> [container\_memory](#input\_container\_memory) | Memory for containers | `number` | `512` | no |
+| <a name="input_desired_capacity"></a> [desired\_capacity](#input\_desired\_capacity) | Desired number of instances | `number` | `1` | no |
+| <a name="input_environment"></a> [environment](#input\_environment) | Environment name | `string` | `"dev"` | no |
+| <a name="input_project_name"></a> [project\_name](#input\_project\_name) | Project name | `string` | `"healthcare-app"` | no |
+| <a name="input_vpc_cidr"></a> [vpc\_cidr](#input\_vpc\_cidr) | CIDR block for VPC | `string` | `"10.0.0.0/16"` | no |
 
-# Test the services
-curl http://<alb-dns-name>/api/patients
-curl http://<alb-dns-name>/api/appointments
-```
+## Outputs
 
-## Project Structure
-
-```
-├── modules/                 # Terraform modules
-│   ├── vpc/                # Network infrastructure
-│   ├── ecs/                # ECS Fargate resources
-│   ├── ecr/                # Container registry
-│   ├── alb/                # Load balancer
-│   ├── iam/                # IAM roles and policies
-│   └── cloudwatch/         # Monitoring and logging
-├── *.tf                    # Main Terraform files
-├── microservices/          # Application code
-│   ├── patient-service/    # Patient management API
-│   └── appointment-service/ # Appointment management API
-├── .github/workflows/      # CI/CD pipelines
-│   ├── terraform.yml       # Infrastructure deployment
-│   └── build-and-deploy.yml # Application deployment
-└── docs/                   # Documentation
-```
-
-## Infrastructure Modules
-
-### VPC Module
-- Multi-AZ VPC with public/private subnets
-- NAT Gateways for outbound internet access
-- Security groups for network isolation
-- Route tables and internet gateway
-
-### ECS Module
-- Fargate cluster with container insights
-- Task definitions with health checks
-- Services with auto-scaling capabilities
-- Integration with load balancer target groups
-
-### ALB Module
-- Application Load Balancer with path-based routing
-- Target groups with health checks
-- Security groups for HTTP/HTTPS traffic
-
-### ECR Module
-- Container repositories for each service
-- Lifecycle policies for image management
-- Image vulnerability scanning enabled
-
-## CI/CD Pipelines
-
-### Infrastructure Pipeline
-1. **Validate**: Terraform format check and validation
-2. **Plan**: Generate execution plan on pull requests
-3. **Apply**: Deploy infrastructure on main branch merge
-
-### Application Pipeline
-1. **Build**: Create Docker images and push to ECR
-2. **Deploy**: Update ECS services with new images
-3. **Monitor**: Wait for deployment stabilization
-
-## Monitoring
-
-### CloudWatch Integration
-- **Container Insights**: ECS cluster monitoring
-- **Log Groups**: Centralized application logging
-- **Dashboards**: Custom metrics visualization
-- **Alarms**: CPU utilization alerts
-
-### Health Checks
-- **Application**: `/health` endpoint for each service
-- **Load Balancer**: Automatic target health monitoring
-- **Container**: Built-in Docker health checks
-
-## Security Features
-
-- **Network Isolation**: Services in private subnets
-- **IAM Roles**: Least privilege access principles
-- **Security Groups**: Restricted network access
-- **Container Security**: Non-root user, minimal attack surface
-- **Encryption**: Data encrypted at rest and in transit
-
-##  API Documentation
-
-### Patient Service (`/api/patients`)
-```bash
-# Create patient
-curl -X POST http://<alb-dns>/api/patients \
-  -H "Content-Type: application/json" \
-  -d '{"name":"John Doe","email":"john@example.com"}'
-
-# Get all patients
-curl http://<alb-dns>/api/patients
-
-# Get patient by ID
-curl http://<alb-dns>/api/patients/<patient-id>
-```
-
-### Appointment Service (`/api/appointments`)
-```bash
-# Create appointment
-curl -X POST http://<alb-dns>/api/appointments \
-  -H "Content-Type: application/json" \
-  -d '{
-    "patientId":"<patient-id>",
-    "doctorName":"Dr. Smith",
-    "appointmentDate":"2024-02-01",
-    "appointmentTime":"10:00"
-  }'
-
-# Get all appointments
-curl http://<alb-dns>/api/appointments
-```
-
-## Local Development
-
-### Running Services Locally
-```bash
-# Patient Service
-cd microservices/patient-service
-npm install
-npm run dev
-
-# Appointment Service
-cd microservices/appointment-service
-npm install
-npm run dev
-```
-
-### Building Docker Images
-```bash
-# Patient Service
-cd microservices/patient-service
-docker build -t patient-service .
-
-# Appointment Service
-cd microservices/appointment-service
-docker build -t appointment-service .
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Service Deployment Failures**
-   ```bash
-   # Check ECS service status
-   aws ecs describe-services --cluster healthcare-app-dev-cluster --services healthcare-app-dev-patient-service
-   ```
-
-2. **Container Health Check Failures**
-   ```bash
-   # View application logs
-   aws logs tail /ecs/healthcare-app-dev/patient-service --follow
-   ```
-
-3. **Load Balancer Issues**
-   ```bash
-   # Check target group health
-   aws elbv2 describe-target-health --target-group-arn <target-group-arn>
-   ```
-
-## Documentation
-
-Detailed documentation is available in the `docs/` directory:
-
-- [**Architecture Guide**](docs/ARCHITECTURE.md): Comprehensive architecture overview
-- [**Deployment Guide**](docs/DEPLOYMENT.md): Step-by-step deployment instructions
-- [**Monitoring Guide**](docs/MONITORING.md): Monitoring and logging setup
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make changes and test locally
-4. Submit a pull request
-5. Automated checks will run Terraform plan
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Evaluation Criteria
-
-This project demonstrates:
-
-- **Correct Fargate Implementation**: Serverless container deployment
-- **Quality IaC**: Modular Terraform with best practices
-- **Effective CI/CD**: Automated testing and deployment
-- **Container Best Practices**: Multi-stage builds, security, health checks
-- **Monitoring Setup**: CloudWatch integration with dashboards
-- **Documentation**: Comprehensive guides and architecture docs
-- **Security**: Network isolation, IAM roles, encryption
-- **State Management**: S3 backend with file locking
-
-## Key Features
-
-- **Zero-Downtime Deployments**: Rolling updates with health checks
-- **Auto Scaling**: ECS service scaling based on metrics
-- **Cost Optimization**: Right-sized resource allocation
-- **Security**: Multi-layered security approach
-- **Observability**: Comprehensive monitoring and logging
-- **Disaster Recovery**: Multi-AZ deployment with automated failover
+| Name | Description |
+|------|-------------|
+| <a name="output_alb_dns_name"></a> [alb\_dns\_name](#output\_alb\_dns\_name) | DNS name of the load balancer |
+| <a name="output_alb_zone_id"></a> [alb\_zone\_id](#output\_alb\_zone\_id) | Zone ID of the load balancer |
+| <a name="output_cloudwatch_log_group_names"></a> [cloudwatch\_log\_group\_names](#output\_cloudwatch\_log\_group\_names) | Names of CloudWatch log groups |
+| <a name="output_ecr_appointment_repository_url"></a> [ecr\_appointment\_repository\_url](#output\_ecr\_appointment\_repository\_url) | URL of the appointment service ECR repository |
+| <a name="output_ecr_patient_repository_url"></a> [ecr\_patient\_repository\_url](#output\_ecr\_patient\_repository\_url) | URL of the patient service ECR repository |
+| <a name="output_ecs_cluster_name"></a> [ecs\_cluster\_name](#output\_ecs\_cluster\_name) | Name of the ECS cluster |
+| <a name="output_vpc_id"></a> [vpc\_id](#output\_vpc\_id) | ID of the VPC |
