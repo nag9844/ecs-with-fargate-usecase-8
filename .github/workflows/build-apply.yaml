@@ -9,6 +9,11 @@ on:
     paths: ['microservices/**']
   workflow_dispatch:
 
+permissions:
+  id-token:   write
+  contents:   write     
+  pull-requests: write
+
 env:
   AWS_REGION: ap-south-1
 

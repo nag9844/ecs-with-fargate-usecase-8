@@ -9,6 +9,11 @@ on:
     paths: ['*.tf', 'modules/**']
   workflow_dispatch:
 
+permissions:
+  id-token:   write
+  contents:   write     
+  pull-requests: write
+
 env:
   AWS_REGION: ap-south-1
   TF_VERSION: 1.12.0
