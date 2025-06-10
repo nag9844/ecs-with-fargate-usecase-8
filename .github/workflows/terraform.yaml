@@ -60,7 +60,7 @@ jobs:
       - name: Terraform Format Check
         id: fmt
         run: |
-          terraform fmt -recursive -check .
+          terraform fmt -recursive .
           # The above command exits with 0 if correctly formatted, 1 if not.
           # We capture its output to display in the PR comment.
           echo "::set-output name=stdout::$(terraform fmt -recursive -check . 2>&1)"
