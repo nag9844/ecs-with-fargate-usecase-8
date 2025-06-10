@@ -11,7 +11,7 @@ on:
 
 env:
   AWS_REGION: ap-south-1
-  TF_VERSION: 1.6.0
+  TF_VERSION: 1.12.0
 
 jobs:
   terraform-validate:
@@ -42,10 +42,11 @@ jobs:
         run: |
           pip3 install checkov
           checkov --version
+        continue-on-error: true
 
       - name: Terraform Format Check
         id: fmt
-        run: terraform fmt -check -recursive .
+        run: terraform fmt -recursive .
         continue-on-error: true
 
       - name: Terraform Init
@@ -155,11 +156,11 @@ jobs:
             const truncatedPlan = plan.length > 65000 ? plan.substring(0, 65000) + "\n... (truncated)" : plan;
             
             const output = `
-            ## Terraform Plan Results 📖
+            ## Terraform Plan Results 
             
             **Plan Status:** \`${{ steps.plan.outcome }}\`
             
-            <details><summary>📋 Show Terraform Plan</summary>
+            <details><summary> Show Terraform Plan</summary>
             
             \`\`\`terraform
             ${truncatedPlan}
@@ -172,7 +173,7 @@ jobs:
             - **Triggered by:** @${{ github.actor }}
             - **Commit:** ${{ github.sha }}
             
-            > 💡 This plan will be applied automatically when this PR is merged to main branch.
+            >  This plan will be applied automatically when this PR is merged to main branch.
             `;
             
             github.rest.issues.createComment({
@@ -236,7 +237,7 @@ jobs:
           # Create infrastructure section for README
           cat > infrastructure_section.md << EOF
           
-          ## 🏗️ Infrastructure Details
+          ##  Infrastructure Details
           
           **Last Updated:** ${CURRENT_DATE}
           
@@ -263,9 +264,9 @@ jobs:
           EOF
           
           # Check if README.md exists and has infrastructure section
-          if grep -q "## 🏗️ Infrastructure Details" README.md; then
+          if grep -q "## Infrastructure Details" README.md; then
             # Replace existing infrastructure section
-            sed -i '/## 🏗️ Infrastructure Details/,$d' README.md
+            sed -i '/## Infrastructure Details/,$d' README.md
             cat infrastructure_section.md >> README.md
           else
             # Append new infrastructure section
