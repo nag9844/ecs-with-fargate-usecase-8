@@ -11,7 +11,7 @@ permissions:
   id-token:   write
   contents:   write     
   pull-requests: write
-  
+
 env:
   AWS_REGION: ap-south-1
   
@@ -36,7 +36,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.6.0
+          terraform_version: 1.12.0
           terraform_wrapper: false
 
       - name: Terraform Init
