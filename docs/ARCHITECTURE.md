@@ -59,7 +59,7 @@ Internet Gateway
 - **Security Groups**:
   - ALB Security Group: Allow HTTP/HTTPS from internet
   - ECS Security Group: Allow traffic from ALB only
-- **VPC Flow Logs**: Network traffic monitoring
+
 
 ### Monitoring and Logging
 - **CloudWatch Log Groups**: Application and container logs
