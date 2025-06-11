@@ -17,9 +17,6 @@ rule "terraform_deprecated_index" {
   enabled = true
 }
 
-rule "terraform_deprecated_interpolation" {
-  enabled = true
-}
 
 rule "terraform_documented_outputs" {
   enabled = true
